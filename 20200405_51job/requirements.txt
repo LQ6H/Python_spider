@@ -1,0 +1,9 @@
+requests
+lxml
+pandas
+time
+random
+csv
+re
+numpy
+jieba

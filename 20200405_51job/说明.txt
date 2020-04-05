@@ -1,0 +1,21 @@
+********************
+***51-job工作分析***
+********************
+
+一.文件说明
+ 1.spider_data.py 获取一个网页并爬取所有子网页数据并保存，这次数据量太大(30000+条)，无法成功
+ 2.单线程
+    2.1 spider_urls.py 首先爬取所有需要爬取网页的url并保存到urls.txt
+    2.2 spider_datas.py 一次爬取所有urls
+     
+ 3.多线程
+    3.1 multi_thread.py 多线程爬取数据(本例为3个)
+    
+ 4.数据文件
+    4.1 job_info.csv 为 spider_data.py
+    4.2 job_info1.csv 为 spider_datas.py
+    4.3 job_info2_1.json job_info2_2.csv 为multi_thread.py，其中job_info2_2.csv 由job_info2_1.json 转变而来
+    
+ 5. 准备工作.ipynb 为爬取数据之前的代码测试
+ 
+ 6.Job数据分析.ipynb 为数据分析及展示
