@@ -5,3 +5,4 @@
 ### 51_job网站python工作数据分析[20200405_51job](https://github.com/LQ6H/Python_spider/tree/master/20200405_51job)
 ### 段子网的经典段子的爬取[20200406_duanziwang](https://github.com/LQ6H/Python_spider/tree/master/20200406_duanziwang)
 ### 网站美女图片下载[20200405_Pictures](https://github.com/LQ6H/Python_spider/tree/master/20200405_Pictures)
+### 使用IP代理防止封[20200421_ip-proxy](https://github.com/LQ6H/Python_spider/tree/master/20200421_ip-proxy)
