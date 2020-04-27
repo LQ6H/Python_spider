@@ -7,3 +7,4 @@
 ### 网站美女图片下载[20200405_Pictures](https://github.com/LQ6H/Python_spider/tree/master/20200405_Pictures)
 ### 使用IP代理防止封[20200421_ip-proxy](https://github.com/LQ6H/Python_spider/tree/master/20200421_ip-proxy)
 ### read_html爬虫[20200424_read-html爬虫](https://github.com/LQ6H/Python_spider/tree/master/20200424_read-html%E7%88%AC%E8%99%AB)
+### 百度文件txt文件爬虫[20200427_百度文库爬虫之txt文件](https://github.com/LQ6H/Python_spider/tree/master/20200427_%E7%99%BE%E5%BA%A6%E6%96%87%E5%BA%93%E7%88%AC%E8%99%AB%E4%B9%8Btxt%E6%96%87%E4%BB%B6)
