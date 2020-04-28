@@ -1,0 +1,136 @@
+/*
+* To change this template, choose Tools | Templates
+* and open the template in the editor.
+*/
+package wang.HtmlParse.MD5andQueue;
+
+/**
+*
+* @author WangQingda
+*/
+import org.htmlparser.NodeFilter;
+import org.htmlparser.Parser;
+import org.htmlparser.filters.NodeClassFilter;
+import org.htmlparser.tags.LinkTag;
+import org.htmlparser.tags.Html;
+import org.htmlparser.util.NodeList;
+import java.util.Hashtable;
+import java.util.Queue;
+import java.util.LinkedList;
+
+// 加密摘要及散列
+import java.security.MessageDigest;
+
+public class SearchWithQueueAndMD5 {
+
+// 存放已经处理过的Url集合及摘要
+private Hashtable urlSet = new Hashtable();
+// 存放还未处理的url的集合
+private Queue&lt;String&gt; urlQueue = new LinkedList&lt;String&gt;();
+
+// 将URL摘要，形成一个摘要字符串，并且存放在一个散列表中，进行碰撞检测，以防止重复地访问同一个URL
+private String MD5Digest(String theUrl) throws Exception {
+
+// 获取一个MD5算法
+MessageDigest md = MessageDigest.getInstance(&quot;MD5&quot;);
+md.update(theUrl.getBytes());
+byte[] bt = md.digest();
+// System.out.println(&quot;已经转换了字节流:&quot;+bt.length+&quot; 摘要数据&quot;);
+// 要把字节流转换成字符串。
+StringBuffer buf = new StringBuffer(&quot;&quot;);
+// 用来获取每个byte的数值
+int i;
+for (int offset = 0; offset &lt; bt.length; offset++) {
+// 用每一个byte填充StringBuffer
+i = bt[offset];
+//System.out.print(&quot;字节:&quot;+i);
+if (i &lt; 0) {
+i += 256;
+}
+// 两位的,在前边补齐0,以使一个byte显示为两个16进制的数字
+if (i &lt; 16) {
+buf.append(&quot;0&quot;);
+}
+
+buf.append(Integer.toHexString(i));
+
+}
+return buf.toString();
+}
+
+// 网络爬虫的主进程。
+public void searchEngine() throws Exception {
+// 先把超链接从队列中取出来,然后从头部删除。
+while (this.urlQueue.size() &gt; 0) {
+System.out.println(&quot;@当前队列中还未处理的Url数量：&quot; + this.urlQueue.size());
+String theUrl = this.urlQueue.remove();
+
+// 给要解析的url生成摘要，检测是否碰撞。
+String urlDigest = this.MD5Digest(theUrl);
+// 如果此URL已经访问过
+if (this.urlSet.containsKey(urlDigest)) {
+System.out.println(&quot;！！！！！！！ 此超链接已访问过,跳过 ！！！！！！！ 已经处理的链接条数：&quot; + this.urlSet.size());
+//return;
+} else {
+// 往散列表里写入摘要信息，表示该URL已经访问过了。
+this.urlSet.put(urlDigest, &quot;摘要&quot;);
+// 创建解析器
+try {
+Parser pars
+er = new Parser();
+// 解析网页
+parser.setURL(theUrl);
+
+// 到底设置什么样的编码?
+// parser.setEncoding(&quot;utf-8&quot;);
+parser.setEncoding(parser.getEncoding());
+
+// 先把整个的HTML源代码获取一下。
+NodeFilter filter = new NodeClassFilter
+(Html.class);
+// 找出Html源码
+NodeList myList = parser.extractAllNodesThatMatch(filter);
+
+if (myList.size() &gt; 0) {
+Html myTag = (Html) myList.elementAt(0);
+String rawHtml = myTag.toHtml();
+System.out.println(&quot;@@@@@@@@ HTML 原始文本长度&quot; + rawHtml.length());
+// System.out.println(rawHtml);
+}
+
+// 然后查找所有的超级链接
+parser.setURL(theUrl);
+//parser.setEncoding(&quot;utf-8&quot;);
+parser.setEncoding(parser.getEncoding());
+// 再重新过滤一遍，只留下超链接。
+filter = new NodeClassFilter(LinkTag.class);
+myList = parser.extractAllNodesThatMatch(filter);
+System.out.println(&quot;本页共有节点数:&quot; + myList.size());
+for (int i = 0; i &lt; myList.size(); i++) {
+LinkTag myTag = (LinkTag) myList.elementAt(i);
+System.out.println(&quot;链接:&quot; + myTag.getLink() + &quot;   链接指向的文本信息:《&quot; + myTag.getStringText() + &quot;》&quot;);
+// 把链接放入队列，循环执行。
+if(this.urlQueue.size()&lt;1000)
+this.urlQueue.offer(myTag.getLink());
+
+}
+} catch (Exception ex) {
+System.out.println(&quot;可能有打不开的超链接&quot;);
+ex.printStackTrace();
+}
+}//判断该url没有访问
+}// 循环取出队列结束
+} // 搜索方法结束
+
+public static void main(String args[]) throws Exception {
+SearchWithQueueAndMD5 mySample = new SearchWithQueueAndMD5();
+// 向队列里放入起始的URL
+//mySample.urlQueue.offer(&quot;http://www.chinatax.gov.cn/n8136506/index.html&quot;);
+mySample.urlQueue.offer(&quot;http://www.tom.com&quot;);
+// 开始进行网络爬取。
+mySample.searchEngine();
+
+}
+}
+
+

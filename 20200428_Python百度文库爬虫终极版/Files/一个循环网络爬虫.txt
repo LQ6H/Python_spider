@@ -1,0 +1,368 @@
+?#Filename:my_spider.py
+# _*_ coding: utf-8 _*_
+from urllib2 import Request, urlopen, URLError, HTTPError
+from sgmllib import SGMLParser
+import threading
+import time
+import urllib2
+import StringIO
+import gzip
+import string
+import os
+import re
+import MySQLdb
+
+#以下是设置代理
+enable_proxy = True  
+proxy_handler = urllib2.ProxyHandler({})  
+null_proxy_handler = urllib2.ProxyHandler({})  
+if enable_proxy:  
+opener = urllib2.build_opener(proxy_handler)  
+else:  
+opener = urllib2.build_opener(null_proxy_handler)  
+urllib2.install_opener(opener)
+
+#以下是数据源配置
+conn=MySQLdb.connect(host=&#39;localhost&#39;,user=&#39;root&#39;,passwd=&#39;743617&#39;,db=&#39;spider&#39;,port=3306,charset=&#39;utf8&#39;)
+cur=conn.cursor()
+
+#显示发送的包的信息
+#httpHandler = urllib2.HTTPHandler(debuglevel=1)
+#httpsHandler = urllib2.HTTPSHandler(debuglevel=1)
+#opener = urllib2.build_opener(httpHandler, httpsHandler)
+#urllib2.install_opener(opener)
+
+class Basegeturls(SGMLParser):                     #这个Basegeturls类作用是分析下载的网页，把网页中的所有链接放在self.url中。
+def reset(self):
+self.url = []
+SGMLParser.reset(self)
+def start_a(self, attrs):
+href = [v for k, v in attrs if k == &#39;href&#39;]
+if href:
+self.url.extend(href)
+
+def input_mysql(urll,filee,title,belong,key_word):                   #将处理网页后的信息存入数据库
+sql=&quot;INSERT INTO  web_page VALUES (%s,%s,%s,%s,%s)&quot;
+values=(urll,filee,title,belong,key_word)
+cur.execute(sql,values)
+cur.close
+
+def compare(urll,home_str):                   #判断链接是否与主页是同一主机
+l1=len(urll)
+l2=len(home_str)
+i=0
+j=0
+while i&lt;l1 and j&lt;l2:
+if urll[i]==home_str[j]:
+i+=1
+j+=1
+else:
+i=i-j+1
+j=0
+if j&gt;=l2:
+return i-l2
+else:
+return 0
+
+def get_url(urll):                   #处理链接，将链接指向的页面存入数据库，返回同一网站未存储的页面的链接
+#    values = {&#39;name&#39; : &#39;WHY&#39;,    
+#          &#39;location&#39; : &#39;SDU&#39;,    
+#          &#39;language&#39; : &#39;Python&#39; }    
+#    data = urllib.urlencode(values)                  #编码工作,为了给服务器传值，发送请求同时传data表单
+global home_str,belong,num,downloadway
+urllist=[]
+headers = {&#39;User-Agent&#39;:&#39;Mozilla/22.0 (Windows;U;Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6&#39;}
+urll1=&quot;&quot;
+while urll1!=urll:
+req = urllib2.Request(urll,headers=headers)#,data)
+req.add_header(&#39;Referer&#39;,urll)
+req.add_header(&#39;Accept-encoding&#39;,&#39;gzip&#39;)
+try:    
+response = urllib2.urlopen(req,timeout=10)
+except URLError, e:
+if hasattr(e, &#39;reason&#39;):    
+print u&#39;We failed to reach a server.&#39;    
+print u&#39;Reason: &#39;, e.reason
+return e.reason
+
+elif hasattr(e, &#39;code&
+#39;):    
+print u&#39;The server couldn\&#39;t fulfill the request.&#39;    
+print u&#39;Error code: &#39;, e.code
+return e.code
+urll1=urll
+urll=response.geturl()
+if response.code==200:
+the_page = response.read()
+pdata = StringIO.StringIO(the_page)                     #下面6行是实现解压缩
+gzipper = gzip.GzipFile(fileobj = pdata)
+try:
+the_page = gzipper.read()
+except(IOError):
+the_page = the_page                        #当有的服务器不支持gzip格式，那么下载的就是网页本身
+match=re.search(r&#39;&lt;\s*meta.*?charset.*?=\s*&quot;?(.*?)&quot;.*?&gt;&#39;,the_page,re.I|re.S)
+if match:
+charset=match.group(1)
+if charset!=&#39;utf-8&#39; and charset!=&#39;utf8&#39;:
+the_page=the_page.decode(charset,&#39;ignore&#39;).encode(&#39;utf-8&#39;)
+myMatch = re.search(r&#39;&lt;title.*?&gt;(.*?)&lt;/title&gt;&#39;, the_page,re.I|re.S)
+the_page1=re.sub(r&#39;&amp;nbsp;&#39;,&#39;&#39;,the_page)
+the_page1=re.sub(r&#39;&gt;&#39;,&#39;&#39;,the_page1)
+the_page1=re.sub(r&#39;.body.*?&gt;&#39;,&#39;&#39;,the_page1)
+myItems = re.findall(r&#39;&gt;(?:.*?)&lt;&#39;,the_page1,re.S)
+strr=&#39;&#39;  
+for item in myItems:
+item=re.sub(r&#39;&gt;&#39;,&#39;&#39;,item)
+item=re.sub(r&#39;&lt;&#39;,&#39;&#39;,item) 
+item=item.strip() 
+strr=strr+item
+myItems = strr[0:500]
+if myMatch: 
+title  = myMatch.group(1)
+print title+&#39;\n&#39;+urll+&#39;\n&#39;
+else:  
+print u&#39;爬虫报告：无法加载标题！&#39;
+title = strr[0:8]+&#39;(模糊标题)&#39;
+print &#39;模糊标题:&#39;+title+&#39;\n&#39;+urll+&#39;\n&#39;
+title = title.replace(&#39;\\&#39;,&#39;&#39;).replace(&#39;/&#39;,&#39;&#39;).replace(&#39;:&#39;,&#39;&#39;).replace(&#39;*&#39;,&#39;&#39;).replace(&#39;?&#39;,&#39;&#39;).replace(&#39;&quot;&#39;,&#39;&#39;).replace(&#39;&gt;&#39;,&#39;&#39;).replace(&#39;&lt;&#39;,&#39;&#39;).replace(&#39;|&#39;,&#39;&#39;) 
+parser = Basegeturls()                         #创建网页分析器
+try:
+parser.feed(the_page)                      #分析网页
+except:
+print u&#39;网页分析失败！&#39;                     #有的网页分析不了，如整个网页就是一个图片
+for item in parser.url:
+if item[0:4]==&#39;http&#39;:
+cur.execute(&quot;select Url from spider.web_page where Url=%s&quot;,item)
+data=cur.fetchone()
+if data==None and compare(item,home_str) and not(item in urllist):
+urllist.append(item)
+input_mysql(urll,the_page,title,belong,myItems)
+conn.commit()
+f = open(downloadway+&#39;/&#39;+title+&#39;.html&#39;,&#39;wb+&#39;)
+f.writelines(the_page)  
+f.close()
+num+=1
+return urllist
+
+def guandu_spider(home_URL,depth):                    #广度优先算法爬取网页
+global max_num,num
+urllist=[]
+urllist1=get_url(home_URL)
+ll1=0
+for url1 in urllist1:
+if not(url1 in urllist) and len(urllist)+1&lt;max_num:
+
+urllist.append(url1)
+ll1+=1
+ll=ll1
+for url in urllist:
+urllist1=get_url(url)
+if num&gt;=max_num:
+print 
+u&#39;页数已满,爬取页面数: &#39;+str(num)
+return 1
+if ll==0:
+depth-=1
+if depth==0:
+print u&#39;深度已满，爬取页面数: &#39;+str(num)
+return 1
+ll=ll1
+ll1=0
+for url1 in urllist1:
+if not(url1 in urllist) and num&lt;max_num:
+urllist.append(url1)
+ll1+=1
+ll-=1
+return 1
+
+if __name__==&#39;__main__&#39;:
+num=0
+update=&#39;1&#39;
+home_url = str(raw_input(&#39;主页网址: &#39;))
+cur.execute(&quot;select ID from spider.home_page where Url=%s&quot;,home_url)
+if cur.fetchone()!=None:
+update=str(raw_input(&#39;是否更新? 0放弃,1确定: &#39;))
+if update==&#39;1&#39;:
+max_num = int(raw_input(&#39;爬取页面数: &#39;))
+deep = int(raw_input(&#39;爬取深度: &#39;))
+home_str = str(raw_input(&#39;主页网址关键字符: &#39;))
+print u&#39;已经启动单站爬虫，咔嚓咔嚓...\n&#39;
+downloadway = &#39;/home/liushijiang/download/&#39;+home_str
+if not os.path.exists(downloadway):
+os.makedirs(downloadway)
+cur.execute(&quot;delete from spider.home_page where Url=%s&quot;,home_url)
+cur.execute(&quot;select max(ID) from spider.home_page&quot;)
+data=cur.fetchone()
+if data[0]==None:
+cur.execute(&quot;INSERT INTO spider.home_page VALUES(%s,%s)&quot;,(1,home_url))
+belong=1
+else:
+cur.execute(&quot;INSERT INTO spider.home_page VALUES(%s,%s)&quot;,(data[0]+1,home_url))
+belong=data[0]+1
+conn.commit()
+guandu_spider(home_url,deep)
+cur.close()
+conn.close()
+print u&#39;请按任意键退出...&#39;  
+raw_input();
+
+
+
+#Filename:toolbox_insight.py
+from sgmllib import SGMLParser
+import threading
+import time
+import urllib2
+import StringIO
+import gzip
+import string
+import os
+class Basegeturls(SGMLParser):
+def reset(self):
+self.url = []
+SGMLParser.reset(self)
+def start_a(self, attrs):
+href = [v for k, v in attrs if k == &#39;href&#39;]
+if href:
+self.url.extend(href)
+class Newlist(list):
+def find(self, num):
+l = len(self)
+first = 0
+end = l - 1
+mid = 0
+if l == 0:
+self.insert(0,num)
+return False
+while first &lt; end:
+mid = (first + end)/2
+if num &gt; self[mid]:
+first = mid + 1
+elif num &lt; self[mid]:
+end = mid - 1
+else:
+break
+if first == end:
+if self[first] &gt; num:
+self.insert(first, num)
+return False
+elif self[first] &lt; num:
+self.insert(first + 1, num)
+return False
+else:
+
+return True
+elif first &gt; end:
+self.insert(first, num)
+return False
+else:
+return True
+class reptile(threading.Thread):
+def __init__(self, Name, queue, result, Flcok, inittime = 0.00001, downloadway = &#39;/home/liushijiang/baike/downloadway/&#39;,configfile = &#39;/home/liushijiang/baike/conf.txt&#39;, maxnum = 10000):
+threading.Thread.__init__(self, name = Name)
+self.queue = queue
+self.result = result
+self.Flcok = Flcok
+self.inittime = inittime
+self.mainway = downloadway
+self.configfile = configfile
+self.num = 0
+self.maxnum = maxnum
+os.makedirs(downloadway + self.getName())
+self.way = downloadway + self.getName() + &#3
+9;\\&#39;
+def run(self):
+opener = urllib2.build_opener() 
+while True:
+url = self.queue.get()
+if url == None:
+break
+parser = Basegeturls()
+request = urllib2.Request(url)
+request.add_header(&#39;Accept-encoding&#39;, &#39;gzip&#39;)
+try:
+page = opener.open(request)
+if page.code == 200:
+predata = page.read()
+pdata = StringIO.StringIO(predata)
+gzipper = gzip.GzipFile(fileobj = pdata)
+try:
+data = gzipper.read()
+except(IOError):
+print &#39;unused gzip&#39;
+data = predata
+try:
+parser.feed(data)
+except:
+print &#39;I am here&#39;
+for item in parser.url:
+self.result.put(item)
+way = self.way + str(self.num) + &#39;.html&#39;
+self.num += 1
+file = open(way, &#39;w&#39;)
+file.write(data)
+file.close()
+self.Flcok.acquire()
+confile = open(self.configfile, &#39;a&#39;)
+confile.write( way + &#39; &#39; + url + &#39;\n&#39;)
+confile.close()
+self.Flcok.release()
+page.close()
+if self.num &gt;= self.maxnum:
+break
+except:
+print &#39;end error&#39;
+class proinsight(threading.Thread):
+def __init__(self, queue, list, homepage, inqueue):
+threading.Thread.__init__(self)
+self.queue = queue
+self.list = list
+self.homepage = homepage
+self.inqueue = inqueue
+def run(self):
+length = len(self.homepage)
+while True:
+item = self.queue.get()
+if item == None:
+break
+if item[0:4] == &#39;\r\n&#39;:
+item = item[4:]
+if item[-1] == &#39;/&#39;:
+item = item[:-1]
+if len(item) &gt;= len(&#39;http
+://&#39;) and item[0:7] == &#39;http://&#39;:
+if len(item) &gt;= length and item[0:length] == self.homepage:
+if self.list.find(item) == False:
+self.inqueue.put(item)
+elif item[0:5] == &#39;/java&#39; or item[0:4] == &#39;java&#39;:
+pass
+else:
+if item[0] != &#39;/&#39;:
+item = &#39;/&#39; + item
+item = self.homepage + item
+if self.list.find(item) == False:
+self.inqueue.put(item)
+
+
+#Filename:create_spider.txt
+CREATE DATABASE spider DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
+use spider;
+create table home_page
+(ID int(3),
+ Url char(255) NOT NULL,
+ PRIMARY KEY (ID)
+);
+create table web_page
+(Url char(255) NOT NULL,
+ File mediumblob NOT NULL,
+ Title char(225) NOT NULL,
+ Belong int(3) NOT NULL,
+ Key_word mediumblob NOT NULL,
+ PRIMARY KEY (Url),
+ CONSTRAINT web_page_1 FOREIGN KEY (Belong) REFERENCES home_page(ID)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+);
+
+
+
