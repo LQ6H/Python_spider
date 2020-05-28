@@ -11,3 +11,4 @@
 ### 百度文库文件下载[20200428_Python百度文库文件爬虫终极版](https://github.com/LQ6H/Python_spider/tree/master/20200428_Python%E7%99%BE%E5%BA%A6%E6%96%87%E5%BA%93%E7%88%AC%E8%99%AB%E7%BB%88%E6%9E%81%E7%89%88)
 ### 豆瓣电影爬取与分析[20200521_douban-movie-analysis](https://github.com/LQ6H/Python_spider/tree/master/20200521_duban-movie-analysis)
 ### 数据爬取与JS操作[20200521_数据爬取与JS加密，混淆和逆向](https://github.com/LQ6H/Python_spider/tree/master/20200521_%E6%95%B0%E6%8D%AE%E7%88%AC%E5%8F%96%E4%B8%8EJS%E5%8A%A0%E5%AF%86%EF%BC%8C%E9%87%8D%E5%A4%8D%E5%92%8C%E9%80%86%E5%90%91)
+### 电话号码生成[20200528_phones](https://github.com/LQ6H/Python_spider/tree/master/20200528_phones)
