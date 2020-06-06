@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>段子</title>
+</head>
+<body>
+<h1>hello</h1>
+
+         {% for path in path_list %}
+         <audio controls>
+            <source src="{{path}}" type="audio/mp3" />
+        </audio>
+        <h5>{{path}}</h5><br>
+
+         {% endfor %}
+
+
+</body>
+</html>
